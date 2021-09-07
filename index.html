@@ -4,7 +4,7 @@
 	<title>My Online Piano</title>
 	
 	<style>
-		label{display:inline-block;width:100px;height:25px;}
+		label{display:inline-block;width:120px;height:25px;}
 		select{display:inline-block;width:120px;height:25px;}
 	</style>
 	
@@ -13,7 +13,6 @@
 	let keyboard_mode = 1;		// 0: alphabetic order, 1: qwerty layout, 2: qwerty angular (qazwsx...)	
 	let shift_mode = 47;		// 470 => Major-R
 	let last_focus_window = null;
-	let last_num_key = 0;
 	let last_mouse_note = 0;
 	let mouse_is_down = 0;
 	
@@ -30,7 +29,7 @@
 		let note_no = Math.floor((y2 * 4)/(r2.bottom - r2.top)) * 12 + Math.floor(( x2 * 12 )/(r2.right - r2.left));
 		note_no -= 12;
 		if ( note_no == last_mouse_note )return;
-		audiounit_play_note([parseInt(440 * Math.pow(2.0, note_no/12.0))]);
+		audiounit_play_note([parseInt(440 * Math.pow(2.0, note_no/12.0))], 0);
 		last_mouse_note = note_no;		
 	}
 	
@@ -58,63 +57,66 @@
 		
         document.addEventListener('keydown', function(event) 
         {
-            if(last_focus_window == document.getElementById('my_canvas')) {
-				let str = event.key;
-				if ( str.length > 1 )return;
+//            if(last_focus_window == document.getElementById('my_canvas'));
+	//		else return;
+			
+			let str = event.key;
+			if ( str.length > 1 )return;
 				
-				let c = str.charCodeAt(0);
-				if ( c >= 48 && c <= 57 ){
-					last_num_key = parseInt(c - 48);
-					document.getElementById('id_shift_mode').selectedIndex = last_num_key;
-					handle_menu_event(4);
-					return;
-				}
+			let c = str.charCodeAt(0);
+			if ( c >= 48 && c <= 57 ){
+				c = parseInt(c - 48);
+				document.getElementById('id_shift_mode').selectedIndex = c;
+				handle_menu_event(4);
+				return;
+			}
 				
-				let use_shift = 0;
-				if ( c >= 65 && c <= 92 ){
-					use_shift = 1;
-					c += 32;
-				}
+			let use_shift = 0;
+			if ( c >= 65 && c <= 92 ){
+				use_shift = 1;
+				c += 32;
+			}
 				
-				let note_no = 0;
-				if ( keyboard_mode == 1 )note_no = qwerty_str.indexOf(str.toLowerCase().charAt(0));
-				else if ( keyboard_mode == 2 )note_no = qwerty_str_zaq.indexOf(str.toLowerCase().charAt(0));
-				else note_no = alphabetic_str.indexOf(str.toLowerCase().charAt(0));
+			let note_no = 0;
+			if ( keyboard_mode == 1 )note_no = qwerty_str.indexOf(str.toLowerCase().charAt(0));
+			else if ( keyboard_mode == 2 )note_no = qwerty_str_zaq.indexOf(str.toLowerCase().charAt(0));
+			else note_no = alphabetic_str.indexOf(str.toLowerCase().charAt(0));
 				
-				note_no = parseInt(note_no - 24);
-				let base_freq = 440;
+			note_no = parseInt(note_no - 24);
+			let base_freq = 440;
 				
-				if ( use_shift != 0 && shift_mode >= 4 ){
-					let ff = [], pp = 0;
-					ff[pp++] = parseInt(base_freq * Math.pow(2.0, note_no/12.0));
-					let ss = ff[pp-1] + ', ';
-					let tmp = shift_mode;
+			if ( use_shift != 0 && shift_mode > 4 ){
+				let ff = [], pp = 0;
+				ff[pp++] = parseInt(base_freq * Math.pow(2.0, note_no/12.0));
+				let ss = ff[pp-1] + ', ';
+				let tmp = shift_mode;
 					
-					for ( var i = 0; i < 4 && tmp > 0; i++ ){
-						let tmp2 = tmp % 10;
-						tmp = parseInt(tmp/10);
+				for ( var i = 0; i < 4 && tmp > 0; i++ ){
+					let tmp2 = tmp % 10;
+					tmp = parseInt(tmp/10);
 						
-						if ( tmp2 == 0 )ff[pp++] = parseInt(base_freq * Math.pow(2.0, parseFloat( note_no - 8 )/12.0));
-						else ff[pp++] = parseInt(base_freq * Math.pow(2.0, parseFloat(note_no + tmp2)/12.0));
+					if ( tmp2 == 0 )ff[pp++] = parseInt(base_freq * Math.pow(2.0, parseFloat( note_no - 8 )/12.0));
+					else if ( tmp2 == 8 )ff[pp++] = parseInt(base_freq * Math.pow(2.0, parseFloat( note_no + 12)/12.0));
+					else ff[pp++] = parseInt(base_freq * Math.pow(2.0, parseFloat(note_no + tmp2)/12.0));
 						
-						ss += (ff[pp-1] + ', ');
-					}
-					console.log('playing freqs = ' + ss);
-					audiounit_play_note(ff);
-				}else{					
-					let freq = parseInt(base_freq * Math.pow(2.0, note_no / 12.0));
-					console.log('playing freq = ' + freq);
-					audiounit_play_note([freq]);				
+					ss += (ff[pp-1] + ', ');
 				}
-            }
+				console.log('playing freqs = ' + ss);
+				audiounit_play_note(ff, 0);
+			}else{					
+				let freq = parseInt(base_freq * Math.pow(2.0, note_no / 12.0));
+				console.log('playing freq = ' + freq);
+				let opt2 = 0;
+				if ( use_shift != 0 && shift_mode > 0 && shift_mode <= 4 )opt2 = shift_mode;
+				
+				audiounit_play_note([freq], opt2);
+			}        
         }, false);
     }	
 
 	function handle_menu_event(n){
 		if ( n == 0 ){	// Start button
-			let freq = parseInt(document.getElementById('id_frequency').value);
-			let ch_cnt = parseInt(document.getElementById('id_channel_count').value);
-			audiounit_init(freq, ch_cnt);
+			audiounit_init();
 			return;
 		}
 		
@@ -144,15 +146,30 @@
 		
 		if ( n == 4 ){
 			let s = document.getElementById('id_shift_mode').value.toLowerCase();
-			if ( s.startsWith("halfnote"))shift_mode = 1;
-			else if ( s.startsWith("double"))shift_mode = 2;
+			
+			if ( s.startsWith("half n"))shift_mode = 1;
+			else if ( s.startsWith("quarter n"))shift_mode = 2;
+			else if ( s.startsWith("half vol"))shift_mode = 3;
+			else if ( s.startsWith("double vol"))shift_mode = 4;			
 			else if ( s.startsWith("major-r"))shift_mode = 470;
 			else if ( s.startsWith("major"))shift_mode = 47;
 			else if ( s.startsWith("minor-r"))shift_mode = 370;
 			else if ( s.startsWith("minor"))shift_mode = 37;
 			else if ( s.startsWith("r-r"))shift_mode = 0;
+			else if ( s.startsWith("r+r"))shift_mode = 8;
+			else shift_mode = 0;
 			
-			console.log(s);
+			return;
+		}
+		
+		if ( n == 5 ){
+			let sample_rate = parseInt(document.getElementById('id_sample_rate').value);
+			audiounit_set_sample_rate(sample_rate);
+			return;
+		}
+		
+		if ( n == 6 ){
+			audiounit_set_harmonic_amps(document.getElementById('id_harmonics').value.split(','));
 			return;
 		}
 	}
@@ -164,16 +181,21 @@
   <body>	
 	<canvas id="my_canvas" width="640px" height="320px" onkeydown="on_canvas_key(event);"></canvas><br/>  	
 
-	<label>Sample rate</label><select id='id_frequency' onchange='alert("This will take effect after you start again.");'><option>16000/s</option><option>44000/s</option><option>48000/s</option><option>8000/s</option></select>
+	<label>Sample rate</label><select id='id_sample_rate' onchange="handle_menu_event(5);"><option>16000/s</option><option>44000/s</option><option>48000/s</option><option>8000/s</option></select>
 	<input type="submit" value="Start" onclick="handle_menu_event(0);"/><br/><br/>
 	
 	<b><u>Piano settings</u></b><br/>
-	<label>Shift key</label><select id='id_shift_mode' onchange="handle_menu_event(4);"><option>Halfnote</option><option>Double note</option><option>Major</option><option>Minor</option><option>Major-R</option><option>Minor-R</option><option>R-R</option></select><br/>
+	<label>Shift + Key</label><select id='id_shift_mode' onchange="handle_menu_event(4);"><option>None</option><option>Half note</option><option>Quarter note</option><option>Half volume</option><option selected="selected">Double volume</option><option>Major</option><option>Minor</option><option>Major-R</option><option>Minor-R</option><option>R-R</option><option>R+R</option></select><br/>
 	<label>Out channels</label><select id='id_channel_count' onchange="handle_menu_event(2);"><option>1 channel</option><option>2 channels</option></select><br/>
-	<label>Play mode</label><select id='id_thread_mode' onchange="handle_menu_event(1);"><option>Play as you type</option><option>Thread based</option><option>Event based</option></select><br/>
-	<label>Key2Note</label><select id='id_keyboard_mode' onchange='handle_menu_event(3);'><option>Qwerty</option><option>Qwerty ZAQ</option><option>Alphabetic</option></select><br/>
+	<label>Play mode</label><select id='id_thread_mode' onchange="handle_menu_event(1);"><option>Play as you type</option><option selected="selected">Thread based</option><option>Event based</option></select><br/>
+	<label>Key2Note</label><select id='id_keyboard_mode' onchange='handle_menu_event(3);'><option>Qwerty</option><option selected="selected">Qwerty ZAQ</option><option>Alphabetic</option></select><br/>
 	<label>Note frequency</label><select id='id_npm' onchange="handle_menu_event(2);"><option>60 npm</option><option>90 npm</option><option>120 npm</option></select><br/>
-	
+	<label>Harmonic amps</label><select id='id_harmonics' onchange="handle_menu_event(6);"><option>None</option><option>0.64,0.125,0.11,0.11</option><option>0.125,0.5,0.11,0.11</option><option>0.25,0.125,0.64,0</option><option selected="selected">0.125,0.25,0.1,0.64</option></select>
 	<br/>
+	
+	<script type="text/javascript">
+		for ( var i = 1; i <= 6; i++ )handle_menu_event(i);
+	</script>
+	
   </body>
 </html>
