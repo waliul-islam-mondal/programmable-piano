@@ -180,7 +180,7 @@
 
   <body>	
 	<canvas id="my_canvas" width="640px" height="320px" onkeydown="on_canvas_key(event);"></canvas><br/>  	
-
+	
 	<label>Sample rate</label><select id='id_sample_rate' onchange="handle_menu_event(5);"><option>16000/s</option><option>44000/s</option><option>48000/s</option><option>8000/s</option></select>
 	<input type="submit" value="Start" onclick="handle_menu_event(0);"/><br/><br/>
 	
@@ -191,8 +191,9 @@
 	<label>Key2Note</label><select id='id_keyboard_mode' onchange='handle_menu_event(3);'><option selected="selected">Qwerty</option><option>Qwerty ZAQ</option><option>Alphabetic</option></select><br/>
 	<label>Note frequency</label><select id='id_npm' onchange="handle_menu_event(2);"><option>30 npm</option><option selected="selected">60 npm</option><option>90 npm</option><option>120 npm</option></select><br/>
 	<label>Harmonic amps</label><select id='id_harmonics' onchange="handle_menu_event(6);"><option>None</option><option>0.64,0.125,0.11,0.11</option><option>0.125,0.5,0.11,0.11</option><option>0.25,0.125,0.64,0</option><option selected="selected">0.125,0.25,0.1,0.64</option></select>
-	<br/>
-	
+	<br/><br/>
+	<label>How to play</label>Click start, and type on your keyboard<br/>
+	<label>Custom version</label>Contact with buet.waliul@gmail.com<br/>
 	<script type="text/javascript">
 		for ( var i = 1; i <= 6; i++ )handle_menu_event(i);
 	</script>
