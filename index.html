@@ -29,7 +29,7 @@
 		let note_no = Math.floor((y2 * 4)/(r2.bottom - r2.top)) * 12 + Math.floor(( x2 * 12 )/(r2.right - r2.left));
 		note_no -= 12;
 		if ( note_no == last_mouse_note )return;
-		audiounit_play_note([parseInt(440 * Math.pow(2.0, note_no/12.0))], 0);
+		audiounit_play_notes([parseInt(440 * Math.pow(2.0, note_no/12.0))], [0]);
 		last_mouse_note = note_no;		
 	}
 	
@@ -86,7 +86,7 @@
 			let base_freq = 440;
 				
 			if ( use_shift != 0 && shift_mode > 4 ){
-				let ff = [], pp = 0;
+				let ff = [], pp = 0;				
 				ff[pp++] = parseInt(base_freq * Math.pow(2.0, note_no/12.0));
 				let ss = ff[pp-1] + ', ';
 				let tmp = shift_mode;
@@ -102,14 +102,14 @@
 					ss += (ff[pp-1] + ', ');
 				}
 				console.log('playing freqs = ' + ss);
-				audiounit_play_note(ff, 0);
+				audiounit_play_notes(ff, [0,0,0,0,0]);
 			}else{					
 				let freq = parseInt(base_freq * Math.pow(2.0, note_no / 12.0));
 				console.log('playing freq = ' + freq);
 				let opt2 = 0;
 				if ( use_shift != 0 && shift_mode > 0 && shift_mode <= 4 )opt2 = shift_mode;
 				
-				audiounit_play_note([freq], opt2);
+				audiounit_play_notes([freq], [opt2]);
 			}        
         }, false);
     }	
@@ -120,11 +120,11 @@
 			return;
 		}
 		
-		if ( n == 1 ){	// Thread mode
-			let s = document.getElementById('id_thread_mode').value.toLowerCase();
-			if ( s.startsWith('thread'))audiounit_set_thread_mode(1);
-			else if ( s.startsWith('event'))audiounit_set_thread_mode(2);
-			else audiounit_set_thread_mode(0);
+		if ( n == 1 ){	// Play mode
+			let s = document.getElementById('id_play_mode').value.toLowerCase();
+			if ( s.indexOf('timer') >= 0 )audiounit_set_play_mode(1);
+			else if ( s.indexOf('event') >= 0)audiounit_set_play_mode(2);
+			else audiounit_set_play_mode(0);
 			return;	
 		}
 		
@@ -187,9 +187,9 @@
 	<b><u>Piano settings</u></b><br/>
 	<label>Shift + Key</label><select id='id_shift_mode' onchange="handle_menu_event(4);"><option>None</option><option>Half note</option><option>Quarter note</option><option>Half volume</option><option selected="selected">Double volume</option><option>Major</option><option>Minor</option><option>Major-R</option><option>Minor-R</option><option>R-R</option><option>R+R</option></select><br/>
 	<label>Out channels</label><select id='id_channel_count' onchange="handle_menu_event(2);"><option>1 channel</option><option>2 channels</option></select><br/>
-	<label>Play mode</label><select id='id_thread_mode' onchange="handle_menu_event(1);"><option>Play as you type</option><option selected="selected">Thread based</option><option>Event based</option></select><br/>
-	<label>Key2Note</label><select id='id_keyboard_mode' onchange='handle_menu_event(3);'><option>Qwerty</option><option selected="selected">Qwerty ZAQ</option><option>Alphabetic</option></select><br/>
-	<label>Note frequency</label><select id='id_npm' onchange="handle_menu_event(2);"><option>60 npm</option><option>90 npm</option><option>120 npm</option></select><br/>
+	<label>Play mode</label><select id='id_play_mode' onchange="handle_menu_event(1);"><option>Play as you type</option><option selected="selected">Use timer</option><option>Use end event</option></select><br/>
+	<label>Key2Note</label><select id='id_keyboard_mode' onchange='handle_menu_event(3);'><option selected="selected">Qwerty</option><option>Qwerty ZAQ</option><option>Alphabetic</option></select><br/>
+	<label>Note frequency</label><select id='id_npm' onchange="handle_menu_event(2);"><option>30 npm</option><option selected="selected">60 npm</option><option>90 npm</option><option>120 npm</option></select><br/>
 	<label>Harmonic amps</label><select id='id_harmonics' onchange="handle_menu_event(6);"><option>None</option><option>0.64,0.125,0.11,0.11</option><option>0.125,0.5,0.11,0.11</option><option>0.25,0.125,0.64,0</option><option selected="selected">0.125,0.25,0.1,0.64</option></select>
 	<br/>
 	
