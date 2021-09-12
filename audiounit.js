@@ -38,20 +38,19 @@
 		while(1){
 			if ( _play_mode != 1 )break;			
 			if ( _timer_next_ms <= 0 ){
-				await sleep(50);
+				await sleep(40);
 				continue;				
 			}
 			
-			let t_ms_cur = current_time_ms();
-			if ( ( _timer_next_ms - t_ms_cur ) > 40 ){
-				await sleep(_timer_next_ms - t_ms_cur - 40);
+			let t_ms = current_time_ms();
+			if ( ( _timer_next_ms - t_ms ) > 50 ){
+				await sleep(_timer_next_ms - t_ms - 50);
 			}			
 								
 			if ( _timer_note_q.length > 0 ){
 				audiounit_push_pcm_from_notes(_timer_note_q, _timer_note_q_opts);
 				_timer_note_q = [];
 				_timer_note_q_opts = [];
-				t_ms_cur = current_time_ms();
 			}
 			
 			let has_audio = audiounit_load_pcm_to_buffer(_buffer_timers[_buffer_timers_cur], _timer_frame_count);
@@ -60,7 +59,11 @@
 				continue;
 			}
 			
-			audiounit_play_buffer(_buffer_timers[_buffer_timers_cur], _timer_next_ms - current_time_ms());
+			t_ms = current_time_ms();
+			if ( _timer_next_ms > t_ms ){
+				await sleep(_timer_next_ms - t_ms);
+			}
+			audiounit_play_buffer(_buffer_timers[_buffer_timers_cur], 0);
 			_buffer_timers_cur = ( _buffer_timers_cur + 1 ) % _buffer_timers.length;
 			_timer_next_ms += _timer_frame_ms;
 		}
@@ -176,7 +179,7 @@
 		source.connect(_audio_ctx.destination);
 		
 		if ( _play_mode != 2 && t_delay_ms > 0 ){
-			let ff = _audio_ctx.currentTime + 0.01 + parseFloat(t_delay_ms/1000.0);
+			let ff = _audio_ctx.currentTime + parseFloat(t_delay_ms/1000.0);
 			source.start(ff);
 		}else source.start();
 		
@@ -242,7 +245,6 @@
 		if ( _initiated == 0 )audiounit_init();
 		if ( freqs.length <= 0 )return;
 		
-		let t1 = current_time_ms();
 		if ( _play_mode == 0 ){
 			audiounit_push_pcm_from_notes(freqs, opts);		
 			audiounit_load_pcm_to_buffer(_buffer_full_notes[_buffer_full_notes_cur], _full_note_frame_count);
@@ -255,16 +257,10 @@
 				_timer_note_q[p++] = freqs[i];				
 			}
 			
-			if ( _timer_next_ms == 0 ){
-				audiounit_push_pcm_from_notes(_timer_note_q, _timer_note_q_opts);
-				_timer_note_q = [];
-				_timer_note_q_opts = [];
-				
-				audiounit_load_pcm_to_buffer(_buffer_timers[_buffer_timers_cur], _timer_frame_count);				
-				audiounit_play_buffer(_buffer_timers[_buffer_timers_cur], 0);
-				_buffer_timers_cur = ( _buffer_timers_cur + 1 ) % _buffer_timers.length;
-				_timer_next_ms = current_time_ms() + _timer_frame_ms;
-			}
+			if ( _timer_next_ms != 0 )return;
+			let t_ms = current_time_ms() + 60;
+			if ( ( t_ms % 16 ) != 0 )t_ms += ( 16 - ( t_ms % 16 ));
+			_timer_next_ms = t_ms;
 		}else if ( _play_mode == 2 ){
 			audiounit_push_pcm_from_notes(freqs, opts);
 			if ( _event_state != 0 )return;
