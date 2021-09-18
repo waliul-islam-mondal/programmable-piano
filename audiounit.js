@@ -1,7 +1,6 @@
 	let _initiated = 0;
 	let _audio_ctx = null;
 	
-	let _sin_predefs = [];
 	let _sample_rate = 16000;
 	let _sample_rate_req = 16000;	// Requested sample rate, will be active on audiounit_init
 	let _play_mode = 0;				// 0: normal, play immediate, 1: timer, 2: on_end_event			
@@ -49,7 +48,7 @@
 			}
 			
 			if ( audiounit_is_continuous_tone_enabled() == 1 ){
-//				t_ms = current_time_ms();
+				t_ms = current_time_ms();
 				audiounit_push_continuous_notes();
 //				console.log('continuous time = ' + parseInt(current_time_ms() - t_ms));
 			}else if ( _timer_note_q.length > 0 ){
@@ -88,10 +87,8 @@
 		audiounit_set_play_mode(parseInt(_play_mode - 1));
 		
 		_continuous_note_q = [];
-		_timer_note_q = [];
-		_sin_predefs = [];
+		_timer_note_q = [];	
 		
-		for ( var i = 0; i <= 10000; i++ )_sin_predefs[i] = Math.sin((Math.PI * 2.0 * i)/10000);
 		console.log('Init settings = ' + _audio_ctx.sampleRate + '/s, ' + parseInt((_sample_rate * _timer_frame_ms)/1000) + ' / ' + parseInt((_sample_rate * _note_duration_ms)/1000));
 	}
 
@@ -326,12 +323,7 @@
 			audiounit_load_pcm_to_buffer(_buffer_event, parseInt((_sample_rate * _event_frame_ms)/1000));
 			audiounit_play_buffer(_buffer_event, 0);
 		}
-	}
-	
-	function audiounit_sin_predefined(ang_rad){
-		ang_rad = (ang_rad * 10000)/(Math.PI * 2);
-		return _sin_predefs[parseInt(ang_rad)%10000]
-	}
+	}	
 	
 	function audiounit_push_continuous_notes(){
 		if ( audiounit_is_continuous_tone_enabled() != 1 )return;
@@ -366,18 +358,16 @@
 				shape_rad = 0.0;
 				shape_rad_per_sample = ( Math.PI * 2.0)/cnt;
 			}
-					
+			
 			for (var i = 0; i < cnt; i++, ang_rad += rad_per_sample, shape_rad += shape_rad_per_sample){
 				let v = Math.sin(ang_rad);
 				let amp = Math.sin(shape_rad);
-				
-				//let v = audiounit_sin_predefined(ang_rad);
-				//let amp = audiounit_sin_predefined(shape_rad);
-				
+			
 				for ( var k = 0; k < _harmonic_amps.length; k++ ){
-					if ( _harmonic_amps[k] >= 0.01 )v += Math.sin(ang_rad * (k+2)) * _harmonic_amps[k];
-					//if ( _harmonic_amps[k] >= 0.01 )v += audiounit_sin_predefined(ang_rad * (k+2)) * _harmonic_amps[k];
+					if ( _harmonic_amps[k] < 0.01 )continue;
+					v += ( Math.sin(ang_rad * (k+2)) * _harmonic_amps[k] );
 				}
+				
 				if ( tone_end == 0 )_q[(_q_pos + i) % qlen] += parseFloat(v * vmult * (0.9 + 0.1 * amp));
 				else _q[(_q_pos + i) % qlen] += parseFloat(v * vmult * amp);
 			}			

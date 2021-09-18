@@ -210,6 +210,11 @@
 			audiounit_set_harmonic_amps(document.getElementById('id_harmonics').value.split(','));
 			return;
 		}
+		
+		if ( n == 7 ){
+			base_freq = parseInt(document.getElementById('id_basefreq').value);
+			return;
+		}
 	}
 	</script>
 
@@ -217,18 +222,19 @@
   </head>
 
   <body>	
-	<canvas id="my_canvas" width="640px" height="320px" onkeydown="on_canvas_key(event);"></canvas><br/>  	
+	<canvas id="my_canvas" width="640px" height="160px" onkeydown="on_canvas_key(event);"></canvas><br/>  	
 	
 	<label>Sample rate</label><select id='id_sample_rate' onchange="handle_menu_event(5);"><option>16000/s</option><option>44000/s</option><option>48000/s</option><option>8000/s</option></select>
-	<input type="submit" value="Start" onclick="handle_menu_event(0);"/><br/><br/>
+	<input type="submit" value="Start" onclick="handle_menu_event(0);"/><br/>
+	<label>Base frequency</label><select id='id_basefreq' onchange="handle_menu_event(7);"><option>420</option><option selected="selected">440</option><option>220</option><option>880</option><option>660</option></select><br/>
+	<label>Harmonic amps</label><select id='id_harmonics' onchange="handle_menu_event(6);"><option>None</option><option>0.64,0.125,0.11,0.11</option><option>0.125,0.5,0.11,0.11</option><option>0.25,0.125,0.64,0</option><option selected="selected">0.125,0.25,0.1,0.64</option></select><br/><br/>
 	
 	<b><u>Piano settings</u></b><br/>
-	<label>Shift + Key</label><select id='id_shift_mode' onchange="handle_menu_event(4);"><option>None</option><option>Half note</option><option>Quarter note</option><option>Half volume</option><option>Double volume</option><option selected="selected">Major</option><option>Minor</option><option>Major-R</option><option>Minor-R</option><option>R-R</option><option>R+R</option></select><br/>
-	<label>Out channels</label><select id='id_channel_count' onchange="handle_menu_event(2);"><option>1 channel</option><option>2 channels</option></select><br/>
+	<label>Note duration</label><select id='id_kpm' onchange="handle_menu_event(2);"><option>Flute/organ mode</option><option>30 npm</option><option selected="selected">60 npm</option><option>90 npm</option><option>120 npm</option></select><br/>
 	<label>Play mode</label><select id='id_play_mode' onchange="handle_menu_event(1);"><option>Play as you type</option><option selected="selected">Use timer</option><option>Use end event</option></select><br/>
-	<label>Key2Note</label><select id='id_keyboard_mode' onchange='handle_menu_event(3);'><option>Qwerty</option><option selected="selected">Qwerty ZAQ</option><option>Alphabetic</option></select><br/>
-	<label>Note duration</label><select id='id_kpm' onchange="handle_menu_event(2);"><option selected="selected">Flute/organ mode</option><option>30 npm</option><option>60 npm</option><option>90 npm</option><option>120 npm</option></select><br/>
-	<label>Harmonic amps</label><select id='id_harmonics' onchange="handle_menu_event(6);"><option>None</option><option>0.64,0.125,0.11,0.11</option><option>0.125,0.5,0.11,0.11</option><option>0.25,0.125,0.64,0</option><option selected="selected">0.125,0.25,0.1,0.64</option></select>
+	<label>Out channels</label><select id='id_channel_count' onchange="handle_menu_event(2);"><option>1 channel</option><option>2 channels</option></select><br/>	
+	<label>Shift + Key</label><select id='id_shift_mode' onchange="handle_menu_event(4);"><option>None</option><option>Half note</option><option>Quarter note</option><option>Half volume</option><option>Double volume</option><option selected="selected">Major</option><option>Minor</option><option>Major-R</option><option>Minor-R</option><option>R-R</option><option>R+R</option></select><br/>	
+	<label>Key2Note</label><select id='id_keyboard_mode' onchange='handle_menu_event(3);'><option>Qwerty</option><option selected="selected">Qwerty ZAQ</option><option>Alphabetic</option></select><br/>	
 	<br/><br/>
 	<label>How to play</label>Click start, and type on your keyboard<br/>
 	<label>Custom version</label>Contact with buet.waliul@gmail.com<br/>
@@ -249,7 +255,7 @@
 			hrm_select.options[hrm_select.options.length] = new Option(s, s);
 		}
 		
-		for ( var i = 1; i <= 6; i++ )handle_menu_event(i);
+		for ( var i = 1; i <= 7; i++ )handle_menu_event(i);
 	</script>
 	
   </body>
