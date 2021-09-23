@@ -248,14 +248,10 @@
 			else if ( opt2 == 2 )dur_x = 0.25;		// Quarter note
 			else if ( opt2 == 3 )vol_x = 0.125;		// Half volume
 			else if ( opt2 == 4 )vol_x = 0.5;		// Double volume
-							
-			if ( parseFloat(vol_x * freqs.length) > 0.5 ){
-				if ( opts == 4 )vol_x = parseFloat(1.0 / freqs.length);
-				else vol_x = parseFloat(0.5 / freqs.length);
-			}
 			
-			vol_x = parseFloat(vol_x * _volume);
-			
+			vol_x = parseFloat(vol_x * _volume);			
+			if ( parseFloat(vol_x * freqs.length) > 1.0 )vol_x = parseFloat(1.0 / freqs.length);			
+						
 			let cnt = parseInt((_sample_rate * _note_duration_ms * dur_x)/1000);
 			
 			let rad_per_sample = parseFloat((Math.PI*2.0*freq)/_sample_rate);
@@ -271,7 +267,7 @@
 					if ( _harmonic_amps[k] >= 0.01 )v += Math.sin(ang_rad * (k+2)) * _harmonic_amps[k];
 				}				
 				
-				_q[(_q_pos + i) % qlen] += parseFloat(v * amp * amp * vol_x);
+				_q[(_q_pos + i) % qlen] += parseFloat(v * amp * amp * amp * vol_x);
 			}
 		}
 	}
@@ -340,9 +336,8 @@
 		if ( _continuous_note_q.length <= 0 )return;
 		
 		let qlen = _q.length;
-		let vmult = 0.25;
-		if ( _continuous_note_q.length > 4 )vmult = parseFloat(1.0/_continuous_note_q.length);
-		vmult = parseFloat(vmult * _volume);
+		let vmult = parseFloat(0.25 * _volume);
+		if ( parseFloat( _continuous_note_q.length * vmult ) > 1.0 )vmult = parseFloat(1.0/_continuous_note_q.length);
 		
 		let sample_cnt = parseInt((_sample_rate * _timer_frame_ms)/1000);
 		if ( _play_mode == 2 )sample_cnt = parseInt((_sample_rate * _event_frame_ms)/1000);
@@ -378,7 +373,7 @@
 					v += ( Math.sin(ang_rad * (k+2)) * _harmonic_amps[k] );
 				}
 				
-				if ( tone_end == 0 )_q[(_q_pos + i) % qlen] += parseFloat(v * vmult * (0.9 + 0.1 * amp));
+				if ( tone_end == 0 )_q[(_q_pos + i) % qlen] += parseFloat(v * vmult * (0.85 + 0.15 * amp ));
 				else _q[(_q_pos + i) % qlen] += parseFloat(v * vmult * amp);
 			}			
 		}
