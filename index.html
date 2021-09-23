@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-	<title>My Online Piano</title>
+	<title>My Offline Piano</title>
 	
 	<style>
 		label{display:inline-block;width:120px;height:25px;}
@@ -18,8 +18,8 @@
 	let mouse_is_down = 0;
 	
 	const alphabetic_str = "abcdefghijklmnopqrstuvwxyz,<.>/?;:'\"\\\[{]}";
-	const qwerty_str = "zxcvbnm,<.>/?asdfghjkl;:'\"\\|qwertyuiop[{]}";
-	const qwerty_str_zaq = "zaqxswcdevfrbgtnhymju,<ki.>lo/?;:p\\'\"[{]}";
+	const qwerty_str = "zxcvbnm,./-=asdfghjkl;'\\qwertyuiop[]";
+	const qwerty_str_zaq = "zaqxswcdevfrbgtnhymju,ki.lo/;p'[-\\]=";
 	
 	let live_down_keys = [];
 	
@@ -215,6 +215,11 @@
 			base_freq = parseInt(document.getElementById('id_basefreq').value);
 			return;
 		}
+		
+		if ( n == 8 ){
+			audiounit_set_volume(parseFloat(document.getElementById('id_volume').value/100.0));
+			return;
+		}
 	}
 	</script>
 
@@ -235,6 +240,7 @@
 	<label>Out channels</label><select id='id_channel_count' onchange="handle_menu_event(2);"><option>1 channel</option><option>2 channels</option></select><br/>	
 	<label>Shift + Key</label><select id='id_shift_mode' onchange="handle_menu_event(4);"><option>None</option><option>Half note</option><option>Quarter note</option><option>Half volume</option><option>Double volume</option><option selected="selected">Major</option><option>Minor</option><option>Major-R</option><option>Minor-R</option><option>R-R</option><option>R+R</option></select><br/>	
 	<label>Key2Note</label><select id='id_keyboard_mode' onchange='handle_menu_event(3);'><option>Qwerty</option><option selected="selected">Qwerty ZAQ</option><option>Alphabetic</option></select><br/>	
+	<label>Volume</label><input id='id_volume' type="range" onchange='handle_menu_event(8);' min="0" max="100" value="50">
 	<br/><br/>
 	<label>How to play</label>Click start, and type on your keyboard<br/>
 	<label>Custom version</label>Contact with buet.waliul@gmail.com<br/>
@@ -250,12 +256,12 @@
 				if ( tmp2 == 0 )s = '0' + s;
 				else if ( tmp2 == 1 )s = '0.25' + s;
 				else s = '0.5' + s;				
-			}			
+			}
 			
 			hrm_select.options[hrm_select.options.length] = new Option(s, s);
 		}
 		
-		for ( var i = 1; i <= 7; i++ )handle_menu_event(i);
+		for ( var i = 1; i <= 8; i++ )handle_menu_event(i);
 	</script>
 	
   </body>

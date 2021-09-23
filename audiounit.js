@@ -6,6 +6,7 @@
 	let _play_mode = 0;				// 0: normal, play immediate, 1: timer, 2: on_end_event			
 	let _channel_count = 1;
 
+	let _volume = 1.0;
 	let _note_duration_ms = 1000;	// 0: continuous tone, for flute or organ
 	let _timer_frame_ms = 160;		// Must be multiple of 16, for synchronization with browsers audio_context.currentTime (audio_context.currentTime increases by 8)
 	let _event_frame_ms = 160;
@@ -95,6 +96,12 @@
 	function audiounit_is_continuous_tone_enabled(){
 		if ( _note_duration_ms <= 0 )return 1;
 		return 0;
+	}
+	
+	function audiounit_set_volume(vol){
+		if ( vol < 0.1 )_volume = 0.1;
+		else if ( vol > 1.0 )_volume = 1.0;
+		else _volume = vol;
 	}
 	
 	function audiounit_set_harmonic_amps(hh){
@@ -241,11 +248,13 @@
 			else if ( opt2 == 2 )dur_x = 0.25;		// Quarter note
 			else if ( opt2 == 3 )vol_x = 0.125;		// Half volume
 			else if ( opt2 == 4 )vol_x = 0.5;		// Double volume
-		
+							
 			if ( parseFloat(vol_x * freqs.length) > 0.5 ){
 				if ( opts == 4 )vol_x = parseFloat(1.0 / freqs.length);
 				else vol_x = parseFloat(0.5 / freqs.length);
 			}
+			
+			vol_x = parseFloat(vol_x * _volume);
 			
 			let cnt = parseInt((_sample_rate * _note_duration_ms * dur_x)/1000);
 			
@@ -333,6 +342,7 @@
 		let qlen = _q.length;
 		let vmult = 0.25;
 		if ( _continuous_note_q.length > 4 )vmult = parseFloat(1.0/_continuous_note_q.length);
+		vmult = parseFloat(vmult * _volume);
 		
 		let sample_cnt = parseInt((_sample_rate * _timer_frame_ms)/1000);
 		if ( _play_mode == 2 )sample_cnt = parseInt((_sample_rate * _event_frame_ms)/1000);
