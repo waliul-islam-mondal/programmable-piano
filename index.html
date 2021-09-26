@@ -166,11 +166,11 @@
 		
 		if ( n == 2 ){
 			let s1 = document.getElementById('id_kpm').value.toLowerCase().trim();
-			let n2 = parseInt(document.getElementById('id_channel_count').value);
-			
+			let out_mode = document.getElementById('id_output_mode').selectedIndex;
+						
 			if ( s1.indexOf('flute') >= 0 || s1.indexOf('organ') >= 0 || parseInt(s1) <= 0 ){
-				audiounit_set_note_settings(0, n2);
-			}else audiounit_set_note_settings(60000/parseInt(s1), n2);
+				audiounit_set_output_settings(out_mode, 0);
+			}else audiounit_set_output_settings(out_mode, 60000/parseInt(s1));			
 			return;
 		}
 		
@@ -219,7 +219,7 @@
 		if ( n == 8 ){
 			audiounit_set_volume(parseFloat(document.getElementById('id_volume').value/100.0));
 			return;
-		}
+		}		
 	}
 	</script>
 
@@ -237,7 +237,7 @@
 	<b><u>Piano settings</u></b><br/>
 	<label>Note duration</label><select id='id_kpm' onchange="handle_menu_event(2);"><option>Flute/organ mode</option><option>30 npm</option><option selected="selected">60 npm</option><option>90 npm</option><option>120 npm</option></select><br/>
 	<label>Play mode</label><select id='id_play_mode' onchange="handle_menu_event(1);"><option>Play as you type</option><option selected="selected">Use timer</option><option>Use end event</option></select><br/>
-	<label>Out channels</label><select id='id_channel_count' onchange="handle_menu_event(2);"><option>1 channel</option><option>2 channels</option></select><br/>	
+	<label>Output mode</label><select id='id_output_mode' onchange="handle_menu_event(2);"><option>Mono</option><option>Stereo LR Equal</option><option>Stereo Type 1</option><option>Stereo Type 2</option><option>Stereo Type 3</option><option>Stereo Type 4</option></select><br/>
 	<label>Shift + Key</label><select id='id_shift_mode' onchange="handle_menu_event(4);"><option>None</option><option>Half note</option><option>Quarter note</option><option>Half volume</option><option>Double volume</option><option selected="selected">Major</option><option>Minor</option><option>Major-R</option><option>Minor-R</option><option>R-R</option><option>R+R</option></select><br/>	
 	<label>Key2Note</label><select id='id_keyboard_mode' onchange='handle_menu_event(3);'><option selected="selected">Qwerty</option><option>Qwerty ZAQ</option><option>Alphabetic</option></select><br/>	
 	<label>Volume</label><input id='id_volume' type="range" onchange='handle_menu_event(8);' min="0" max="100" value="50">

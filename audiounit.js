@@ -4,8 +4,9 @@
 	let _sample_rate = 16000;
 	let _sample_rate_req = 16000;	// Requested sample rate, will be active on audiounit_init
 	let _play_mode = 0;				// 0: normal, play immediate, 1: timer, 2: on_end_event			
-	let _channel_count = 1;
-
+	let _output_stereo = 0;
+	let _output_stereo_type = 0;
+	
 	let _volume = 1.0;
 	let _note_duration_ms = 1000;	// 0: continuous tone, for flute or organ
 	let _timer_frame_ms = 160;		// Must be multiple of 16, for synchronization with browsers audio_context.currentTime (audio_context.currentTime increases by 8)
@@ -17,7 +18,7 @@
 	let _buffer_timers_cur = 0;	
 	let _buffer_full_notes_cur = 0;
 
-	let _q = [], _q_pos = 0;
+	let _q = [], _q2 = [], _q_pos = 0;
 	let _harmonic_amps = [0.125,0.25,0.1,0.64];
 	let _event_state = 0;	//1: playing, busy (applicable in event_based play mode only)
 
@@ -51,7 +52,6 @@
 			if ( audiounit_is_continuous_tone_enabled() == 1 ){
 				t_ms = current_time_ms();
 				audiounit_push_continuous_notes();
-//				console.log('continuous time = ' + parseInt(current_time_ms() - t_ms));
 			}else if ( _timer_note_q.length > 0 ){
 				audiounit_push_pcm_from_notes(_timer_note_q, _timer_note_q_opts);
 				_timer_note_q = [];
@@ -81,8 +81,8 @@
 		_audio_ctx = new (window.AudioContext || window.webkitAudioContext)({sampleRate:_sample_rate_req});
 		_sample_rate = _audio_ctx.sampleRate;
 		_note_duration_ms += 1;	// Otherwise, the function will not be called because of equality
-		_channel_count++;
-		audiounit_set_note_settings(_note_duration_ms - 1, _channel_count - 1);
+		_output_stereo++;
+		audiounit_set_output_settings(_output_stereo - 1, _note_duration_ms - 1);
 		
 		_play_mode++;
 		audiounit_set_play_mode(parseInt(_play_mode - 1));
@@ -120,39 +120,45 @@
 		if ( _initiated )alert('This sample rate will be active after you click start button.');
 	}
 	
-	function audiounit_set_note_settings(dur_ms, chnl_cnt){
+	function audiounit_set_output_settings(output_mode, dur_ms){
 		dur_ms = parseInt(dur_ms);
-		chnl_cnt = parseInt(chnl_cnt);
+		output_mode = parseInt(output_mode);
 		
 		if ( dur_ms == 0 );
 		else if ( dur_ms < 500 )dur_ms = 500;
 		else if ( dur_ms > 2000 )dur_ms = 2000;
 		
-		if ( chnl_cnt < 1 )chnl_cnt = 1;
-		else if ( chnl_cnt > 2 )chnl_cnt = 2;
-	
-		if ( _note_duration_ms == dur_ms && _channel_count == chnl_cnt )return;		
+		let output_stereo = 0;
+		if ( output_mode >= 1 ){
+			output_stereo = 1;
+			_output_stereo_type = ( output_mode - 1 );
+		}else _output_stereo_type = 0;
+		
+		if ( _note_duration_ms == dur_ms && _output_stereo == output_stereo )return;		
 		
 		_note_duration_ms = dur_ms;
-		_channel_count = chnl_cnt;
+		_output_stereo = output_stereo;
 		
 		if ( !_initiated )return;
 				
-		let qlen = parseInt((_sample_rate * _note_duration_ms)/1000);
+		let qlen = parseInt((_sample_rate * _note_duration_ms * 2)/1000);
 		if ( _note_duration_ms == 0 )qlen = parseInt(_sample_rate * 2);
 		
 		_q = [];
+		_q2 = [];
 		for ( var i = 0; i < qlen; i++ )_q[i] = 0.0;
+		for ( var i = 0; i < qlen; i++ )_q2[i] = 0.0;
 		_q_pos = 0;
 		
-		_buffer_event = _audio_ctx.createBuffer(_channel_count, parseInt((_sample_rate * _event_frame_ms)/1000), _sample_rate);
+		let chnl_cnt = ( _output_stereo == 1 ? 2 : 1 );
+		_buffer_event = _audio_ctx.createBuffer(chnl_cnt, parseInt((_sample_rate * _event_frame_ms)/1000), _sample_rate);
 		
 		for ( var i = 0; i < 2; i++ ){
-			_buffer_timers[i] = _audio_ctx.createBuffer(_channel_count, parseInt((_sample_rate * _timer_frame_ms)/1000), _sample_rate);
+			_buffer_timers[i] = _audio_ctx.createBuffer(chnl_cnt, parseInt((_sample_rate * _timer_frame_ms)/1000), _sample_rate);
 		}
 		
 		for ( var i = 0; i < 10 && _note_duration_ms > 0; i++ ){
-			_buffer_full_notes[i] = _audio_ctx.createBuffer(_channel_count, parseInt((_sample_rate * _note_duration_ms)/1000), _sample_rate);			
+			_buffer_full_notes[i] = _audio_ctx.createBuffer(chnl_cnt, parseInt((_sample_rate * _note_duration_ms)/1000), _sample_rate);			
 		}
 		
 		_buffer_timers_cur = 0;
@@ -182,6 +188,11 @@
 		for ( var i = 0; i < qlen; i++ ){
 			if ( Math.abs(_q[i]) > 0.001 )return 0;
 		}
+		
+		if ( _output_stereo != 0 ){
+			for ( var i = 0; i < qlen; i++ )if ( Math.abs(_q2[i]) > 0.001 )return 0;
+		}
+		
 		return 1;
 	}
 	
@@ -218,19 +229,32 @@
 	}
 	
 	function audiounit_load_pcm_to_buffer(buf, frame_count){
-		let chcnt = buf.numberOfChannels;
+		let stereo_mode = ( buf.numberOfChannels > 1 ? 1 : 0 );
+		if ( _output_stereo != 1 )stereo_mode = 0;
+		
 		let cur_buf = buf.getChannelData(0);
-		let cur_buf2 = null;
-		if ( chcnt > 1 )cur_buf2 = buf.getChannelData(1);
+		let cur_buf2 = ( stereo_mode == 1 ? buf.getChannelData(1) : null );
 		let has_audio = 0;
 		let qlen = _q.length;
 		
+		let dt2 = 0.0;
 		for ( var i = 0; i < frame_count; i++ ){
 			let dt = _q[_q_pos];
-			if ( Math.abs(dt) > 0.001 )has_audio = 1;
 			_q[_q_pos] = 0.0;
-			cur_buf[i] = dt;
-			if ( chcnt > 1 )cur_buf2[i] = dt;
+			cur_buf[i] = dt;			
+			if ( stereo_mode == 1 ){
+				dt2 = _q2[_q_pos];
+				_q2[_q_pos] = 0.0;
+				cur_buf2[i] = dt2;
+			}
+			
+			if ( has_audio == 0 ){
+				if ( Math.abs(dt) > 0.001 )has_audio = 1;
+				else if ( stereo_mode == 1 ){
+					if ( Math.abs(dt2) > 0.001 )has_audio = 1;
+				}
+			}
+			
 			_q_pos = ( _q_pos + 1 ) % qlen;
 		}
 		
@@ -238,7 +262,10 @@
 	}
 		
 	function audiounit_push_pcm_from_notes(freqs, opts){
-		if ( freqs.length <= 0 )return;		
+		if ( freqs.length <= 0 )return;
+		let cur_rnd = parseInt(current_time_ms()/100);	// for stereo mode
+		let delay_frm_cnt = parseInt(( _sample_rate * 80 )/1000); //for stereo mode
+		
 		for ( var f = 0; f < freqs.length; f++ ){
 			let freq = freqs[f];		
 			let vol_x = 0.25, dur_x = 1.0;
@@ -257,9 +284,9 @@
 			let rad_per_sample = parseFloat((Math.PI*2.0*freq)/_sample_rate);
 			let shape_rad_per_sample = parseFloat(Math.PI/(cnt * 2.0));
 			let ang_rad = 0.0, shape_rad = parseFloat(Math.PI/2);
-			let qlen = _q.length;
+			let qlen = _q.length, dest_p = _q_pos;
 			
-			for (var i = 0; i < cnt; i++, ang_rad += rad_per_sample, shape_rad += shape_rad_per_sample){
+			for (var i = 0; i < cnt; i++, dest_p++, ang_rad += rad_per_sample, shape_rad += shape_rad_per_sample){
 				let v = Math.sin(ang_rad);
 				let amp = Math.sin(shape_rad);
 				
@@ -267,7 +294,31 @@
 					if ( _harmonic_amps[k] >= 0.01 )v += Math.sin(ang_rad * (k+2)) * _harmonic_amps[k];
 				}				
 				
-				_q[(_q_pos + i) % qlen] += parseFloat(v * amp * amp * amp * vol_x);
+				v = v * vol_x;
+				if ( _output_stereo == 1 ){
+					let pp = dest_p % qlen;					
+					if ( _output_stereo_type == 1 || _output_stereo_type == 2 ){
+						if ( ( cur_rnd % 2 ) == 0 || _output_stereo_type == 1 ){
+							_q[pp] += parseFloat(v * amp * amp * amp);
+							_q2[pp] += parseFloat(v * amp);
+						}else {
+							_q[pp] += parseFloat(v * amp);
+							_q2[pp] += parseFloat(v * amp * amp * amp);
+						}
+					}else if ( _output_stereo_type == 3 || _output_stereo_type == 4 ){						
+						v = parseFloat(v * amp * amp * amp);
+						if ( ( cur_rnd % 2 ) == 0 || _output_stereo_type == 3 ){
+							_q[pp] += v;
+							_q2[(pp + delay_frm_cnt) % qlen] += v;
+						}else{							
+							_q[(pp + delay_frm_cnt) % qlen] += v;
+							_q2[pp] += v;
+						}
+					}else{
+						_q[pp] += parseFloat(v * amp * amp * amp);
+						_q2[pp] += parseFloat(v * amp * amp * amp);
+					}
+				}else _q[dest_p % qlen] += parseFloat(v * amp * amp * amp);				
 			}
 		}
 	}
@@ -313,7 +364,7 @@
 		}
 		
 		for ( var i = 0; i < freqs.length; i++ ){
-			if ( _continuous_note_q.indexOf(freqs[i]) < 0 )_continuous_note_q[_continuous_note_q.length] = freqs[i];			
+			if ( _continuous_note_q.indexOf(freqs[i]) < 0 )_continuous_note_q[_continuous_note_q.length] = freqs[i];
 		}
 		
 		if ( _play_mode == 1 ){
@@ -358,10 +409,10 @@
 			
 			if ( tone_end != 0 ){
 				cnt = parseInt(cnt * 2);
-				shape_rad_per_sample = parseFloat(shape_rad_per_sample/2);
+				shape_rad_per_sample = parseFloat(shape_rad_per_sample/2);			
 			}else{
 				shape_rad = 0.0;
-				shape_rad_per_sample = ( Math.PI * 2.0)/cnt;
+				shape_rad_per_sample = ( Math.PI * 2.0)/cnt;				
 			}
 			
 			for (var i = 0; i < cnt; i++, ang_rad += rad_per_sample, shape_rad += shape_rad_per_sample){
@@ -371,10 +422,37 @@
 				for ( var k = 0; k < _harmonic_amps.length; k++ ){
 					if ( _harmonic_amps[k] < 0.01 )continue;
 					v += ( Math.sin(ang_rad * (k+2)) * _harmonic_amps[k] );
-				}
+				}		
 				
-				if ( tone_end == 0 )_q[(_q_pos + i) % qlen] += parseFloat(v * vmult * (0.85 + 0.15 * amp ));
-				else _q[(_q_pos + i) % qlen] += parseFloat(v * vmult * amp);
+				if ( _output_stereo == 1 ){
+					if ( tone_end == 0 ){
+						if ( _output_stereo_type == 1 ){
+							_q[(_q_pos + i) % qlen] += parseFloat(v * vmult * (0.85 + 0.15 * amp ));
+							_q2[(_q_pos + i) % qlen] += parseFloat(v * vmult * (0.75 - 0.25 * amp ));
+						}else if ( _output_stereo_type == 2 ){
+							_q[(_q_pos + i) % qlen] += parseFloat(v * vmult * (0.6 + 0.4 * amp ));
+							_q2[(_q_pos + i) % qlen] += parseFloat(v * vmult * (0.65 - 0.35 * amp ));
+						}else if ( _output_stereo_type == 3 ){
+							_q[(_q_pos + i) % qlen] += parseFloat(v * vmult * (0.75 + 0.25 * amp ));
+							_q2[(_q_pos + i) % qlen] += parseFloat(v * vmult * (0.75 - 0.25 * Math.sin(shape_rad * 2)));
+						}else if ( _output_stereo_type == 4 ){
+							_q[(_q_pos + i) % qlen] += parseFloat(v * vmult * (0.75 + 0.25 * Math.sin(shape_rad * 3)));
+							_q2[(_q_pos + i) % qlen] += parseFloat(v * vmult * (0.75 - 0.25 * amp));							
+						}else{
+							_q[(_q_pos + i) % qlen] += parseFloat(v * vmult * (0.75 + 0.25 * amp ));
+							_q2[(_q_pos + i) % qlen] += parseFloat(v * vmult * (0.70 - 0.3 * amp ));
+						}
+					}else{
+						v = parseFloat(v * vmult * amp);
+						_q[(_q_pos + i) % qlen] += v;
+						_q2[(_q_pos + i) % qlen] += v;
+					}
+				}else{
+					if ( tone_end == 0 )v = parseFloat(v * vmult * (0.85 + 0.15 * amp ));
+					else v = parseFloat(v * vmult * amp);
+					
+					_q[(_q_pos + i) % qlen] += v;
+				}
 			}			
 		}
 	}
