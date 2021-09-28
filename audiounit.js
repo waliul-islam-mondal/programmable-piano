@@ -21,7 +21,8 @@
 	let _q = [], _q2 = [], _q_pos = 0;
 	let _harmonic_amps = [0.125,0.25,0.1,0.64];
 	let _event_state = 0;	//1: playing, busy (applicable in event_based play mode only)
-
+	
+	let _timer_running_id = 1;
 	let _timer_next_ms = 0;
 	let _timer_note_q = [];
 	let _timer_note_q_opts = [];
@@ -36,12 +37,17 @@
 		return new Promise(resolve => setTimeout(resolve, msec));
 	}
 	
-	async function audiounit_run_background_timer(){
+	async function audiounit_run_background_timer(tid){		
 		while(1){
-			if ( _play_mode != 1 )break;			
+			if ( _play_mode != 1 )break;
+			if ( _timer_running_id != tid ){
+				console.log('stopping extra timer');
+				break;
+			}
+			
 			if ( _timer_next_ms <= 0 ){
 				await sleep(40);
-				continue;				
+				continue;
 			}
 			
 			let t_ms = current_time_ms();
@@ -80,15 +86,15 @@
 				
 		_audio_ctx = new (window.AudioContext || window.webkitAudioContext)({sampleRate:_sample_rate_req});
 		_sample_rate = _audio_ctx.sampleRate;
-		_note_duration_ms += 1;	// Otherwise, the function will not be called because of equality
+		_note_duration_ms++;
 		_output_stereo++;
-		audiounit_set_output_settings(_output_stereo - 1, _note_duration_ms - 1);
-		
 		_play_mode++;
+		
+		audiounit_set_output_settings(_output_stereo - 1, _note_duration_ms - 1);		
 		audiounit_set_play_mode(parseInt(_play_mode - 1));
 		
 		_continuous_note_q = [];
-		_timer_note_q = [];	
+		_timer_note_q = [];
 		
 		console.log('Init settings = ' + _audio_ctx.sampleRate + '/s, ' + parseInt((_sample_rate * _timer_frame_ms)/1000) + ' / ' + parseInt((_sample_rate * _note_duration_ms)/1000));
 	}
@@ -106,11 +112,13 @@
 	
 	function audiounit_set_harmonic_amps(hh){
 		_harmonic_amps = [];
+		if ( hh.length == 1 && hh[0].toLowerCase().trim() == 'none' )return;
+		
 		let n = 0;
-		for ( var i = 0; i < hh.length && i < 6; i++ ){
+		for ( var i = 0; i < hh.length && i < 6; i++ ){			
 			let h = parseFloat(hh[i]);
-			if ( h < 0 )h = parseFloat(0-h);
-			if ( h > 1.0 )h = 1.0;			
+			if ( h < 0 )h = parseFloat(0-h);			
+			if ( h > 1.0 )h = 1.0;
 			_harmonic_amps[n++] = h;
 		}
 	}
@@ -153,33 +161,35 @@
 		let chnl_cnt = ( _output_stereo == 1 ? 2 : 1 );
 		_buffer_event = _audio_ctx.createBuffer(chnl_cnt, parseInt((_sample_rate * _event_frame_ms)/1000), _sample_rate);
 		
+		_buffer_timers = [];
 		for ( var i = 0; i < 2; i++ ){
 			_buffer_timers[i] = _audio_ctx.createBuffer(chnl_cnt, parseInt((_sample_rate * _timer_frame_ms)/1000), _sample_rate);
 		}
 		
+		_buffer_full_notes = [];
 		for ( var i = 0; i < 10 && _note_duration_ms > 0; i++ ){
 			_buffer_full_notes[i] = _audio_ctx.createBuffer(chnl_cnt, parseInt((_sample_rate * _note_duration_ms)/1000), _sample_rate);			
 		}
 		
 		_buffer_timers_cur = 0;
-		_buffer_full_notes_cur = 0;
+		_buffer_full_notes_cur = 0;		
 	}
 	
 	function audiounit_set_play_mode(play_mode){
 		if ( play_mode < 0 || play_mode > 2 )return;
+		if ( play_mode == 0 && _note_duration_ms == 0 ){			
+			alert('Warning: For flute/organ mode, please set play mode = timer or event');
+			return;
+		}
+		
 		if ( play_mode == _play_mode )return;
 		
 		_play_mode = play_mode;
 		_timer_note_q = [];
 		
-		if ( !_initiated )return;
+		if ( !_initiated )return;		
 		
-		if ( _play_mode == 0 && _note_duration_ms == 0 ){
-			_note_duration_ms = 1000;
-			alert('note duration set to 1000 ms');
-		}
-		
-		if ( _play_mode == 1 )audiounit_run_background_timer();
+		if ( _play_mode == 1 )audiounit_run_background_timer(++_timer_running_id);
 		else if ( _play_mode == 2 )_event_state = 0;
 	}
 

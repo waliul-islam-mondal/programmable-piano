@@ -83,7 +83,7 @@
 
 		let continuous_tone = audiounit_is_continuous_tone_enabled();
 		if ( continuous_tone == 0 ){
-			if ( is_up != 0 )return;
+			if ( is_up != 0 )return;	
 			let ff = char_to_frequencies(c_asci);
 			let opt2 = [0,0,0,0,0];
 			if ( c_asci >= 65 && c_asci <= 92 && shift_mode > 0 && shift_mode <= 4 )opt2 = [shift_mode];
@@ -102,7 +102,8 @@
 		if ( p < 0 && is_up == 1 )return;
 			
 		if ( p >= 0 )live_down_keys.splice(p,1);
-		if ( is_up == 0 )live_down_keys[live_down_keys.length] = c_asci;
+		else if ( c_asci == 32 )live_down_keys = [];		
+		else if ( is_up == 0 )live_down_keys[live_down_keys.length] = c_asci;
 		
 		let ff = [];
 		for ( var i = 0; i < live_down_keys.length; i++ ){
@@ -110,11 +111,7 @@
 			for ( var j = 0; j < f.length; j++ )ff[ff.length] = f[j];
 		}
 		
-		audiounit_update_continuous_notes(ff);
-		
-/*		let s = '';
-		for ( var i = 0; i < live_down_keys.length; i++ )s += String.fromCharCode(live_down_keys[i]);
-		console.log('current keys = ' + s + ' => ' + live_down_keys);*/
+		audiounit_update_continuous_notes(ff);		
 	}
 	
     window.onload = function() {
