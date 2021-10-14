@@ -61,7 +61,7 @@
 			if ( audiounit_is_continuous_tone_enabled() == 1 ){				
 				audiounit_push_continuous_notes();
 			}else if ( _timer_note_q.length > 0 ){
-				for ( var i = 0; i < _timer_note_q.length; i++ )_note_request_ms[i] = parseInt( _note_request_ms[i] - _next_play_ms + _timer_frame_ms );
+				for ( var i = 0; i < _timer_note_q.length; i++ )_note_request_ms[i] = parseInt(_timer_frame_ms - (t_ms - _note_request_ms[i]));
 				audiounit_push_pcm_from_notes(_timer_note_q, _timer_note_q_opts, _note_request_ms);
 				_timer_note_q = [];
 			}
@@ -78,8 +78,8 @@
 			}
 			
 			audiounit_play_buffer(_buffer_timers[_buffer_timers_cur], 0);
-			_buffer_timers_cur = ( _buffer_timers_cur + 1 ) % _buffer_timers.length;
-			_next_play_ms += _timer_frame_ms;
+			_buffer_timers_cur = ( _buffer_timers_cur + 1 ) % _buffer_timers.length;			
+			_next_play_ms += _timer_frame_ms;			
 		}
 	}
 
@@ -182,7 +182,7 @@
 		_play_mode = play_mode;
 		_timer_note_q = [];
 		
-		if ( !_initiated )return;		
+		if ( !_initiated )return;
 		
 		if ( _play_mode == 1 )audiounit_run_background_timer(++_timer_running_id);
 		else if ( _play_mode == 2 )_event_state = 0;
@@ -299,7 +299,6 @@
 			let qlen = _q.length, dest_p = _q_pos;
 			
 			if ( delay_mss != null ){
-//				console.log('delay_ms: ' + delay_mss[f]);
 				if ( delay_mss[f] > 0 )dest_p += parseInt((_sample_rate * delay_mss[f])/1000);
 			}
 			
